@@ -73,6 +73,8 @@
     menu: "M3 6h18 M3 12h18 M3 18h18",
     close: "M6 6l12 12 M18 6L6 18",
     download: "M12 3v12 M6 9l6 6 6-6 M3 17v4h18v-4",
+    eye: "M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6-10-6-10-6z M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z",
+    "eye-off": "M3 3l18 18 M10.6 6.2A10.7 10.7 0 0 1 12 6c6.5 0 10 6 10 6a18.2 18.2 0 0 1-3.1 3.8 M6.2 6.2C3.5 8.2 2 12 2 12s3.5 6 10 6c1.5 0 2.8-.3 4-.8",
   };
   function icon(name = "arrow") {
     return `<span class="icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="${paths[name] || paths.arrow}"/></svg></span>`;
@@ -127,7 +129,9 @@
             .join("")}</select>`
         : type === "textarea"
           ? `<textarea id="${id}" name="${name}" required>${esc(value)}</textarea>`
-          : `<input id="${id}" name="${name}" type="${type}" value="${esc(value)}" ${type === "number" ? 'min="0" step="any"' : ""} ${type === "password" ? 'minlength="6" autocomplete="new-password"' : type === "date" ? "" : `autocomplete="off"`} required>`
+          : type === "password"
+            ? `<div class="password-field"><input id="${id}" name="${name}" type="password" value="${esc(value)}" minlength="6" autocomplete="new-password" required><button type="button" class="password-toggle" data-action="toggle-password" aria-label="Show password" title="Show password" aria-pressed="false">${icon("eye")}</button></div>`
+            : `<input id="${id}" name="${name}" type="${type}" value="${esc(value)}" ${type === "number" ? 'min="0" step="any"' : ""} ${type === "date" ? "" : `autocomplete="off"`} required>`
     }</div>`;
   }
   const fields = (items, three = false) =>
@@ -228,7 +232,7 @@
   function shell(route, body) {
     const s = cfg.screens[route],
       active = group(route);
-    return `<aside class="sidebar" aria-label="Workspace navigation">${brand()}<p class="eyebrow">WORKSPACE</p><nav>${cfg.nav.map(([r, l, i]) => `<a href="#${r}" ${r === active ? 'class="active" aria-current="page"' : ""}>${icon(i)}<span>${esc(l)}</span></a>`).join("")}</nav><div class="sidebar-space"></div><div class="workspace-note"><span class="eyebrow">CONNECTED WORKSPACE</span>One workspace.<br>Every detail, in sync.</div><button type="button" class="inline-link user-name" data-go="shift" title="Choose workspace">${esc(state.user.name)}</button><span class="user-role">${esc(roleFor(route))}</span></aside><main class="main"><header class="topbar"><button class="mobile-menu" aria-label="Open navigation" data-action="menu">${icon("menu")}</button><p class="breadcrumb">${esc(s[2])} &nbsp; / &nbsp; ${esc(s[0])}</p>${badge(state.user.name + " · Owner")}<button class="bell" aria-label="View stock alerts" data-go="alerts">${icon("bell")}</button></header><div class="content"><div class="heading"><h1>${esc(s[0])}</h1>${s[1] ? `<p class="muted">${esc(s[1])}</p>` : ""}</div>${body}</div></main>`;
+    return `<aside class="sidebar" aria-label="Workspace navigation">${brand()}<p class="eyebrow">WORKSPACE</p><nav>${cfg.nav.map(([r, l, i]) => `<a href="#${r}" ${r === active ? 'class="active" aria-current="page"' : ""}>${icon(i)}<span>${esc(l)}</span></a>`).join("")}</nav><div class="sidebar-space"></div><div class="workspace-note"><span class="eyebrow">CONNECTED WORKSPACE</span>One workspace.<br>Every detail, in sync.</div><button type="button" class="inline-link user-name" data-go="shift" title="Choose workspace">${esc(state.user.name)}</button><span class="user-role">${esc(roleFor(route))}</span><button type="button" class="inline-link logout-link" data-action="logout">Log out</button></aside><main class="main"><header class="topbar"><button class="mobile-menu" aria-label="Open navigation" data-action="menu">${icon("menu")}</button><p class="breadcrumb">${esc(s[2])} &nbsp; / &nbsp; ${esc(s[0])}</p>${badge(state.user.name + " · Owner")}<button class="bell" aria-label="View stock alerts" data-go="alerts">${icon("bell")}</button></header><div class="content"><div class="heading"><h1>${esc(s[0])}</h1>${s[1] ? `<p class="muted">${esc(s[1])}</p>` : ""}</div>${body}</div></main>`;
   }
   function productTable() {
     return table(
@@ -2835,7 +2839,24 @@
         $(".sidebar")?.classList.toggle("open");
         return;
       }
-      if (name === "queue-sale") {
+      if (name === "toggle-password") {
+        const input = a.closest(".password-field")?.querySelector("input");
+        if (!input) return;
+        const shown = input.type === "text";
+        input.type = shown ? "password" : "text";
+        a.innerHTML = icon(shown ? "eye" : "eye-off");
+        a.setAttribute("aria-label", shown ? "Show password" : "Hide password");
+        a.title = shown ? "Show password" : "Hide password";
+        a.setAttribute("aria-pressed", String(!shown));
+      } else if (name === "logout") {
+        api.clearToken();
+        ["name", "username", "role", "branch"].forEach((key) => {
+          state.user[key] = cfg.seed.user[key];
+        });
+        save();
+        go("login");
+        toast("You have been logged out.");
+      } else if (name === "queue-sale") {
         const f = a.closest("form");
         if (f.reportValidity()) commitSale(readForm(f), true);
       } else if (name === "sync") syncQueue();

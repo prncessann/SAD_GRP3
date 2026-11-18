@@ -493,6 +493,26 @@ tbody tr.clickable:hover {
 .field textarea:focus {
   border-color: var(--pink);
 }
+.password-field {
+  position: relative;
+}
+.password-field input {
+  padding-right: 46px;
+}
+.password-toggle {
+  position: absolute;
+  top: 50%;
+  right: 10px;
+  transform: translateY(-50%);
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  padding: 6px;
+  cursor: pointer;
+}
+.password-toggle .icon {
+  display: block;
+}
 .field textarea {
   resize: vertical;
   min-height: 76px;
@@ -709,6 +729,10 @@ tbody tr.clickable:hover {
   font-size: inherit;
   cursor: pointer;
   text-align: left;
+}
+.logout-link {
+  margin-top: 8px;
+  font-size: 12px;
 }
 .check-row {
   display: flex;
