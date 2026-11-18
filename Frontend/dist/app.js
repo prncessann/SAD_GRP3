@@ -360,7 +360,7 @@
   }
   const screens = {};
   screens.login = () =>
-    `<div class="auth">${brand()}<p class="eyebrow">YOUR WORKSPACE, BEAUTIFULLY CONNECTED</p><div class="heading"><h1>Welcome back.</h1><p class="muted">Your kitchen, together in one place.</p></div>${row(card("Sign in to your workspace", form("login", stack(field("Name · demo account", "name", state.user.name), field("Username", "username", state.user.username), field("Password", "password", "demo123", "password"), submit("Sign in to dashboard"), "<p>Demo account is prefilled. Continue in one click; choose another role below.</p>", btn("Choose branch, role or shift", "shift", "ghost")))), card("Good food starts with good operations.", badge("ELI’S YUMMY KITCHEN") + "<p>Track every batch, every branch, and every sale in one thoughtfully organized workspace.</p>" + metrics([metric("Branches", "3", "Connected to the main hub", "box"), metric("Today’s focus", "Fresh", "Prepared with care", "leaf")]) + notice("From production to weekly sign-off, keep the whole kitchen in view.")))}</div>`;
+    `<div class="auth">${brand()}<p class="eyebrow">YOUR WORKSPACE, BEAUTIFULLY CONNECTED</p><div class="heading"><h1>Welcome back.</h1><p class="muted">Your kitchen, together in one place.</p></div>${row(card("Sign in to your workspace", form("login", stack(field("Username", "username", state.user.username), field("Password", "password", "", "password"), submit("Sign in to dashboard"), "<p>Sign in with your staff account.</p>", btn("Choose branch, role or shift", "shift", "ghost")))), card("Good food starts with good operations.", badge("ELI’S YUMMY KITCHEN") + "<p>Track every batch, every branch, and every sale in one thoughtfully organized workspace.</p>" + metrics([metric("Branches", "3", "Connected to the main hub", "box"), metric("Today’s focus", "Fresh", "Prepared with care", "leaf")]) + notice("From production to weekly sign-off, keep the whole kitchen in view.")))}</div>`;
   screens.shift = () =>
     `<div class="auth">${brand()}<p class="eyebrow">YOUR WORKSPACE, BEAUTIFULLY CONNECTED</p><div class="heading"><h1>Choose your workspace</h1><p class="muted">Choose the workspace that matches your role and shift.</p></div>${row(card("Sales staff", form("workspace-sales", stack(field("Branch", "branch", "Main Street", "select", branches.slice(1)), field("Shift", "shift", "Opening shift", "select", ["Opening shift", "Closing shift"]), submit("Open sales workspace")))), card("Production & product", form("workspace-production", stack(field("Location", "branch", "Main hub", "select", branches), field("Role", "role", "Production Head", "select", roles.slice(1)), actions([submit("Open product"), btn("Dispatch workspace", "dispatches", "secondary")], true)))))}${row(card("Material tracking staff", "<p>Register materials, receive stock and record opening / closing usage.</p>" + btn("Open material tracking", "supplies")), card("Business owner", "<p>See consolidated branch activity, approve adjustments and sign off weekly audits.</p>" + btn("Open owner dashboard", "overview")))}${row(card("Inventory / Dispatch staff", "<p>DFD actor workspaces. Use only the actions assigned to the staff role.</p>" + btn("Open product staff workspace", "inventory", "secondary") + btn("Open dispatch staff workspace", "dispatches", "secondary")), card("Production staff", "<p>Record shift opening counts, then closing and daily usage.</p>" + btn("Log material opening", "supply-opening", "secondary") + btn("Log material closing", "usage", "secondary")))}${btn("Back to sign in", "login", "ghost")}</div>`;
   screens.overview = () =>
@@ -2346,11 +2346,19 @@
     }
   }
   const handlers = {
-    login: (d) => {
-      state.user.name = d.name.trim();
-      state.user.username = d.username.trim();
-      save();
-      navigate("overview");
+    login: async (d) => {
+      try {
+        const { token, user } = await api.login(d.username.trim(), d.password);
+        api.setToken(token);
+        state.user.name = user.name;
+        state.user.username = user.username;
+        state.user.role = user.role;
+        state.user.branch = user.branch;
+        save();
+        navigate("overview");
+      } catch (err) {
+        toast(err.message);
+      }
     },
     "workspace-sales": (d) => {
       state.user.branch = d.branch;
@@ -2927,6 +2935,7 @@
   // Explicit reset helper is available for development and the README's demo reset steps.
   window.resetKitchenDemo = () => {
     localStorage.removeItem(STORE);
+    api.clearToken();
     state = clone(cfg.seed);
     navigate("login");
     render();
